@@ -676,7 +676,7 @@ grammar =
   Type: [
     o 'UnionOrIntersectionOrPrimaryType'
     o 'FunctionType'
-    #o 'ConstructorType'
+    o 'ConstructorType'
   ]
 
   UnionOrIntersectionOrPrimaryType: [
@@ -752,10 +752,10 @@ grammar =
 
   TypeMember: [
     o 'PropertySignature'
-    #o 'CallSignature'
-    #o 'ConstructSignature'
+    o 'CallSignature'
+    o 'ConstructSignature'
     o 'IndexSignature'
-    #o 'MethodSignature'
+    o 'MethodSignature'
   ]
 
   ArrayType: [
@@ -787,17 +787,17 @@ grammar =
   FunctionType: [
     o '( ) => Type',                              -> {type:"FunctionType", Type:$4}
     #o '( ParameterList ) => Type',                -> {type:"FunctionType", ParameterList:$2, Type:$5}
-    #o 'TypeParameters ( ) => Type',               -> {type:"FunctionType", TypeParameters:$1, Type:$5}
+    o 'TypeParameters ( ) => Type',               -> {type:"FunctionType", TypeParameters:$1, Type:$5}
     #o 'TypeParameters ( ParameterList ) => Type', -> {type:"FunctionType", TypeParameters:$1, ParameterList:$3, Type:$6}
   ]
-  ###
+
   ConstructorType: [
-    o 'NEW ( ) => Type',                              -> ["ConstructorType", null, null, $4]
-    o 'NEW ( ParameterList ) => Type',                -> ["ConstructorType", null, $2, $5]
-    o 'NEW TypeParameters ( ) => Type',               -> ["ConstructorType", $1, null, $5]
-    o 'NEW TypeParameters ( ParameterList ) => Type', -> ["ConstructorType", $1, $3, $6]
+    o 'NEW ( ) => Type',                              -> {type:"ConstructorType", Type:$5}
+    #o 'NEW ( ParameterList ) => Type',                -> {type:"ConstructorType", Type:$6}
+    o 'NEW TypeParameters ( ) => Type',               -> {type:"ConstructorType", TypeParameters:$2, Type:$6}
+    #o 'NEW TypeParameters ( ParameterList ) => Type', -> ["ConstructorType", $1, $3, $6]
   ]
-  ###
+
   TypeQuery: [
     o 'TYPEOF TypeQueryExpression', -> {type:"TypeQuery", TypeQueryExpression:$2}
   ]
@@ -824,16 +824,16 @@ grammar =
   TypeAnnotation: [
     o '::: Type', -> {type:"TypeAnnotation", Type:$2}
   ]
-  ###
+
   CallSignature: [
     o '( )',                               -> {type:"CallSignature"}
     o 'TypeParameters ( )',                -> {type:"CallSignature", TypeParameters:$1}
-    o '( ParameterList )',                 -> {type:"CallSignature", ParameterList:$2}
+    #o '( ParameterList )',                 -> {type:"CallSignature", ParameterList:$2}
     o '( ) TypeAnnotation',                -> {type:"CallSignature", TypeAnnotation:$3}
-    o 'TypeParameters ( ParameterList )',  -> {type:"CallSignature", TypeParameters:$1, ParameterList:$3}
-    o '( ParameterList ) TypeAnnotation',  -> {type:"CallSignature", ParameterList:$2, TypeAnnotation:$4}
+    #o 'TypeParameters ( ParameterList )',  -> {type:"CallSignature", TypeParameters:$1, ParameterList:$3}
+    #o '( ParameterList ) TypeAnnotation',  -> {type:"CallSignature", ParameterList:$2, TypeAnnotation:$4}
     o 'TypeParameters ( ) TypeAnnotation', -> {type:"CallSignature", TypeParameters:$1, TypeAnnotation:$4}
-    o 'TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"CallSignature", TypeParameters:$1, ParameterList:$3, TypeAnnotation:$4}
+    #o 'TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"CallSignature", TypeParameters:$1, ParameterList:$3, TypeAnnotation:$4}
   ]
   ###
   ParameterList: [
@@ -858,7 +858,7 @@ grammar =
     #o 'AccessibilityModifier BindingIdentifierOrPattern TypeAnnotation', -> ["RequiredParameter", $1, $2, $3]
     #o 'BindingIdentifier ::: StringLiteral',                -> {type:"RequiredParameter", BindingIdentifierOrPattern:$1, TypeAnnotation:$2}
   ]
-  ###
+
   AccessibilityModifier: [
     o "public"
     o "private"
@@ -890,28 +890,28 @@ grammar =
   RestParameter: [
     o '... BindingIdentifier TypeAnnotation', -> {type:"RestParameter", BindingIdentifier:$1, TypeAnnotation:$3}
   ]
-
+  ###
   ConstructSignature: [
     o 'NEW ( )',                               -> {type:"ConstructSignature"}
     o 'NEW TypeParameters ( )',                -> {type:"ConstructSignature", TypeParameters:$2}
-    o 'NEW ( ParameterList )',                 -> {type:"ConstructSignature", ParameterList:$3}
+    #o 'NEW ( ParameterList )',                 -> {type:"ConstructSignature", ParameterList:$3}
     o 'NEW ( ) TypeAnnotation',                -> {type:"ConstructSignature", TypeAnnotation:$4}
-    o 'NEW TypeParameters ( ParameterList )',  -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4}
-    o 'NEW ( ParameterList ) TypeAnnotation',  -> {type:"ConstructSignature", ParameterList:$3, TypeAnnotation:$5}
+    #o 'NEW TypeParameters ( ParameterList )',  -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4}
+    #o 'NEW ( ParameterList ) TypeAnnotation',  -> {type:"ConstructSignature", ParameterList:$3, TypeAnnotation:$5}
     o 'NEW TypeParameters ( ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, TypeAnnotation:$5}
-    o 'NEW TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4, TypeAnnotation:$6}
+    #o 'NEW TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4, TypeAnnotation:$6}
   ]
-  ###
+
   IndexSignature: [
     o '[ BindingIdentifier : string ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
     o '[ BindingIdentifier : number ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
   ]
-  ###
+
   MethodSignature: [
     o 'PropertyName CallSignature',   -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3}
     o 'PropertyName ? CallSignature', -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3, optional:true}
   ]
-
+  ###
   TypeAliasDeclaration: [
     o 'type BindingIdentifier = Type',                -> ["TypeAliasDeclaration", $2, null, $4]
     o 'type BindingIdentifier TypeParameters = Type', -> ["TypeAliasDeclaration", $2, $3, $5]
