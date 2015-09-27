@@ -28,7 +28,12 @@ header = """
 build = (cb) ->
   files = fs.readdirSync 'src'
   files = ('src/' + file for file in files when file.match(/\.(lit)?coffee$/))
-  run ['-c', '-o', 'lib/coffee-script'].concat(files), cb
+  #run ['-c', '-o', 'lib/coffee-script'].concat(files), cb
+  proc =         spawn 'coffee', ['-c', '-o', 'lib/coffee-script'].concat(files), cb
+  proc.stderr.on 'data', (buffer) -> console.log buffer.toString()
+  proc.on        'exit', (status) ->
+    process.exit(1) if status != 0
+    cb() if typeof cb is 'function'
 
 # Run a CoffeeScript through our node/coffee interpreter.
 run = (args, cb) ->
@@ -160,11 +165,11 @@ task 'build:browser', 'rebuild the merged script for inclusion in the browser', 
       }
     }(this));
   """
-  unless process.env.MINIFY is 'false'
-    {code} = require('uglify-js').minify code, fromString: true
+  #unless process.env.MINIFY is 'false'
+  #  {code} = require('uglify-js').minify code, fromString: true
   fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
-  console.log "built ... running browser tests:"
-  invoke 'test:browser'
+  #console.log "built ... running browser tests:"
+  #invoke 'test:browser'
 
 
 task 'doc:site', 'watch and continually rebuild the documentation for the website', ->

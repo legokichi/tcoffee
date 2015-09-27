@@ -121,6 +121,7 @@ exports.Lexer = class Lexer
 
     if not forcedIdentifier and (id in JS_KEYWORDS or id in COFFEE_KEYWORDS)
       tag = id.toUpperCase()
+
       if tag is 'WHEN' and @tag() in LINE_BREAK
         tag = 'LEADING_WHEN'
       else if tag is 'FOR'
@@ -418,6 +419,10 @@ exports.Lexer = class Lexer
     if value is ';'
       @seenFor = no
       tag = 'TERMINATOR'
+    else if value is '<'             then tag  = '<'
+    else if value is '>'             then tag  = '>'
+    else if value is '|'             then tag  = '|'
+    else if value is '&'             then tag  = '&'
     else if value in MATH            then tag = 'MATH'
     else if value in COMPARE         then tag = 'COMPARE'
     else if value in COMPOUND_ASSIGN then tag = 'COMPOUND_ASSIGN'
@@ -773,7 +778,7 @@ COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat COFFEE_ALIASES
 # used by CoffeeScript internally. We throw an error when these are encountered,
 # to avoid having a JavaScript error at runtime.
 RESERVED = [
-  'case', 'default', 'function', 'var', 'void', 'with', 'const', 'let', 'enum'
+  'case', 'default', 'function', 'var', 'with', 'const', 'let', 'enum'
   'export', 'import', 'native', 'implements', 'interface', 'package', 'private'
   'protected', 'public', 'static'
 ]
@@ -806,6 +811,8 @@ NUMBER     = ///
 
 OPERATOR   = /// ^ (
   ?: [-=]>             # function
+   | \?:::             # property type annotation
+   | :::               # type annotation
    | [-+*/%<>&|^!?=]=  # compound assign / compare
    | >>>=?             # zero-fill right shift
    | ([-+:])\1         # doubles
