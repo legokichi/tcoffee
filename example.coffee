@@ -1,15 +1,15 @@
 # Assignment:
-number::number   = 42
-opposite::boolean = true
+number:::number   = 42
+opposite:::boolean = true
 
 # Conditions:
 number = -42 if opposite
 
 # Functions:
-square::(x:number)->number = (x) -> x * x
+#square:::(x:number)->number = (x) -> x * x
 
 # Arrays:
-list::number = [1, 2, 3, 4, 5]
+list:::number = [1, 2, 3, 4, 5]
 
 # Objects:
 math =
@@ -18,8 +18,8 @@ math =
   cube:   (x) -> x * square x
 
 # Splats:
-race = (winner::string, runners...::string[]) ->
-  console.log winner, runners
+#race = (winner :::string, runners... :::string[]) ->
+#  console.log winner, runners
 
 # Existence:
 alert "I knew it!" if elvis?
@@ -28,8 +28,8 @@ alert "I knew it!" if elvis?
 cubes = (math.cube num for num in list)
 
 
-square = (x::number) -> x * x
-cube   = (x) -> square(x) * x
+#square = (x:::number) -> x * x
+#cube   = (x) -> square(x) * x
 
 fill = (container, liquid = "coffee") ->
   "Filling the #{container} with #{liquid}..."

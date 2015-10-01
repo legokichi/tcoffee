@@ -573,6 +573,7 @@ grammar =
   # rules are necessary.
   Operation: [
     o 'UNARY Expression',                       -> new Op $1 , $2
+    o 'TYPEOF Expression',                       -> new Op $1 , $2
     o 'UNARY_MATH Expression',                  -> new Op $1 , $2
     o '-     Expression',                      (-> new Op '-', $2), prec: 'UNARY_MATH'
     o '+     Expression',                      (-> new Op '+', $2), prec: 'UNARY_MATH'
@@ -615,6 +616,10 @@ grammar =
   # TypeScript compatible Type
   # https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#a1-types
 
+  #IdentifierName http://www.ecma-international.org/ecma-262/6.0/#sec-names-and-keywords
+  IdentifierName: [
+    o 'IDENTIFIER'
+  ]
   # Identifiers http://www.ecma-international.org/ecma-262/6.0/#sec-identifiers
   IdentifierReference: [
     o 'IDENTIFIER'
@@ -622,7 +627,6 @@ grammar =
   BindingIdentifier: [
     o 'IDENTIFIER'
   ]
-
   # BindingPattern http://www.ecma-international.org/ecma-262/6.0/#sec-destructuring-binding-patterns
   BindingPattern: [
     o 'ObjectBindingPattern'
@@ -666,10 +670,10 @@ grammar =
     o 'ParenthesizedType'
     o 'PredefinedType'
     o 'TypeReference'
-    #o 'ObjectType'
+    o 'ObjectType'
     o 'ArrayType'
     o 'TupleType'
-    #o 'TypeQuery'
+    o 'TypeQuery'
   ]
   ParenthesizedType: [
     o '( Type )', -> $2
@@ -679,11 +683,23 @@ grammar =
   # TypeReference https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#382-type-references
   TypeReference: [
     o 'TypeName',               -> {type: "TypeReference", TypeName:$1}
-    #o 'TypeName TypeArguments', -> {type: "TypeReference", TypeName:$1, TypeArguments:$2}
+    o 'TypeName TypeArguments', -> {type: "TypeReference", TypeName:$1, TypeArguments:$2}
   ]
   TypeName: [
     o 'IdentifierReference',            -> [$1]
     o 'TypeName . IdentifierReference', -> $1.concat $3 # HACK
+  ]
+  # TypeReference = TypeName<TypeArgumentList>
+  # TypeArguments https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#362-type-argument-lists
+  TypeArguments: [
+    o '< TypeArgumentList >', -> $2
+  ]
+  TypeArgumentList: [
+    o 'TypeArgument',                    -> [$1]
+    o 'TypeArgumentList , TypeArgument', -> $1.concat $3
+  ]
+  TypeArgument: [
+    o 'Type'
   ]
   ArrayType: [
     o 'PrimaryType INDEX_START INDEX_END', -> {type:"ArrayType", PrimaryType:$1}
@@ -701,31 +717,31 @@ grammar =
   IntersectionType: [
     o 'IntersectionOrPrimaryType & PrimaryType', -> {type:"IntersectionType", IntersectionOrPrimaryType:$1, PrimaryType:$3}
   ]
-  ###
   TypeQuery: [
     o 'TYPEOF TypeQueryExpression', -> {type:"TypeQuery", TypeQueryExpression:$2}
   ]
   TypeQueryExpression: [
-    o 'Identifier',                  -> [$1]
-    o 'TypeQueryExpression . Identifier', -> $1.concat $3
+    o 'IdentifierReference',                  -> [$1]
+    o 'TypeQueryExpression . IdentifierName', -> $1.concat $3
   ]
-
   ObjectType: [
     o '{ }',          -> {type:"ObjectType", TypeBody:null}
     o '{ TypeBody }', -> {type:"ObjectType", TypeBody:$2}
   ]
   TypeBody: [
     o 'TypeMemberList'
+    o 'TypeMemberList ;', -> $1
     o 'TypeMemberList ,', -> $1
   ]
   TypeMemberList: [
     o 'TypeMember',                  -> [$1]
+    o 'TypeMemberList ; TypeMember', -> $1.concat $3
     o 'TypeMemberList , TypeMember', -> $1.concat $3
   ]
   TypeMember: [
     o 'PropertySignature'
-    o 'CallSignature'
-    o 'ConstructSignature'
+    #o 'CallSignature'
+    #o 'ConstructSignature'
     o 'IndexSignature'
     o 'MethodSignature'
   ]
@@ -734,10 +750,10 @@ grammar =
     o 'PropertyName ?',                -> {type:"PropertySignature", PropertyName:$1, optional:true}
     o 'PropertyName TypeAnnotation',   -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:$2}
     o 'PropertyName ? TypeAnnotation', -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:$3, optional:true}
-    o 'PropertyName ?::: Type',        -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:{type:"TypeAnnotation", Type:$3}, optional:true}
+    #o 'PropertyName ?::: Type',        -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:{type:"TypeAnnotation", Type:$3}, optional:true} # HACK
   ]
   PropertyName: [
-    o 'Identifier'
+    o 'IdentifierName'
     o 'StringLiteral'
     o 'NumericLiteral'
   ]
@@ -762,14 +778,15 @@ grammar =
     #o 'NEW TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4, TypeAnnotation:$6}
   ]
   IndexSignature: [
-    o '[ BindingIdentifier : string ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
-    o '[ BindingIdentifier : number ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
+    o '[ BindingIdentifier : BindingIdentifier ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6} # HACK
+    #o '[ BindingIdentifier : string ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
+    #o '[ BindingIdentifier : number ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
   ]
   MethodSignature: [
     o 'PropertyName CallSignature',   -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3}
     o 'PropertyName ? CallSignature', -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3, optional:true}
   ]
-
+  ###
   FunctionType: [
     o '( ) => Type',                              -> {type:"FunctionType", Type:$4}
     #o '( ParameterList ) => Type',                -> {type:"FunctionType", ParameterList:$2, Type:$5}
@@ -852,20 +869,8 @@ grammar =
     o 'type BindingIdentifier = Type',                -> ["TypeAliasDeclaration", $2, null, $4]
     o 'type BindingIdentifier TypeParameters = Type', -> ["TypeAliasDeclaration", $2, $3, $5]
   ]
-
-  # TypeReference = TypeName<TypeArgumentList>
-  # TypeArguments https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#362-type-argument-lists
-  TypeArguments: [
-    o '< TypeArgumentList >', -> $2
-  ]
-  TypeArgumentList: [
-    o 'TypeArgument',                    -> [$1]
-    o 'TypeArgumentList , TypeArgument', -> $1.concat $3
-  ]
-  TypeArgument: [
-    o 'Type'
-  ]
   ###
+
 
 # Precedence
 # ----------
@@ -884,7 +889,7 @@ operators = [
   #+['left',      'CALL_START', 'CALL_END', '(', ')']
   ['nonassoc',  '++', '--']
   ['left',      '?']
-  ['right',     'UNARY']
+  ['right',     'UNARY', 'TYPEOF']
   ['right',     '**']
   ['right',     'UNARY_MATH']
   ['left',      'MATH']

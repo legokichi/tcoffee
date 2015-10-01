@@ -128,6 +128,8 @@ exports.Lexer = class Lexer
         @seenFor = yes
       else if tag is 'UNLESS'
         tag = 'IF'
+      else if tag is 'TYPEOF'
+        tag = 'TYPEOF'
       else if tag in UNARY
         tag = 'UNARY'
       else if tag in RELATION

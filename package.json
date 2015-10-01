@@ -23,7 +23,7 @@
   },
   "preferGlobal": true,
   "scripts": {
-    "build": "coffee -c -o lib/coffee-script src/grammar.coffee;cake build:parser;cake build:browser;coffee parseTest.coffee",
+    "build": "cake build;cake build:parser;cake build:browser;coffee parseTest.coffee",
     "test":         "node ./bin/cake test",
     "test-harmony": "node --harmony ./bin/cake test"
   },
