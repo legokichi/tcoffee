@@ -1,0 +1,37 @@
+<script src="./extras/coffee-script.js"></script>
+<textarea id="tcoffee" style="width:600px;height:400px;">
+n ::: number = 3
+n ::: (number) = 3
+union ::: number | string = "one"
+tuple ::: [number, string] = [3, "three"]
+array ::: string[] = ["three"]
+array ::: Array<number> = [3]
+intersection ::: [number] & [string] = [3]
+obj ::: {a, b?, c:::number, d? :::number, e?:::string} = {a:0, b:null, c:0, d:null, e:"0"}
+#callSignature ::: {
+#  new <T, U>(a: T[], f: (x: T) => U): U[];
+#} = (a:number[], f:(x:number)=>string)=> a.map(f)
+# < T1, T2, ... > ( p1, p2, ... ) => R
+#   is exactly equivalent to the object type literal
+# { < T1, T2, ... > ( p1, p2, ... ) : R }
+#func ::: (texts... ::: string[])=> void = console.log.bind(console)
+#func("hoge", "huga")
+</textarea>
+<script>
+  var elm = document.getElementById("tcoffee");
+  elm.addEventListener("keyup", function(ev){
+    console.clear();
+    sessionStorage["tmp"] = elm.value;
+    compile(elm.value);
+  });
+  if (sessionStorage["tmp"] != null) elm.value = sessionStorage["tmp"];
+
+  compile(elm.value);
+  function compile(text){
+    var tokens = CoffeeScript.tokens(text);
+    console.log(tokens);
+    var nodes = CoffeeScript.nodes(tokens);
+    console.log(nodes);
+    //console.log(CoffeeScript.compile(text));
+  }
+</script>

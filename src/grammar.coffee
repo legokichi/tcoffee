@@ -172,9 +172,9 @@ grammar =
     o 'Assignable = Expression',                -> new Assign $1, $3
     o 'Assignable = TERMINATOR Expression',     -> new Assign $1, $4
     o 'Assignable = INDENT Expression OUTDENT', -> new Assign $1, $4
-    o 'Assignable TypeAnnotation = Expression',                -> console.log($2); return new Assign $1, $4
-    o 'Assignable TypeAnnotation = TERMINATOR Expression',     -> console.log($2); return new Assign $1, $5
-    o 'Assignable TypeAnnotation = INDENT Expression OUTDENT', -> console.log($2); return new Assign $1, $5
+    o 'Assignable TypeAnnotation = Expression',                -> new Assign $1, $4, null, null, $2
+    o 'Assignable TypeAnnotation = TERMINATOR Expression',     -> new Assign $1, $5, null, null, $2
+    o 'Assignable TypeAnnotation = INDENT Expression OUTDENT', -> new Assign $1, $5, null, null, $2
   ]
 
   # Assignment when it happens within an object literal. The difference from
@@ -615,141 +615,113 @@ grammar =
   # TypeScript compatible Type
   # https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#a1-types
 
-  ## BEGIN HACK
-  BindingIdentifier: [
-    o 'IDENTIFIER', -> {type:"BindingIdentifier", IDENTIFIER:$1}
-  ]
-
-  BindingPattern: []
-
+  # Identifiers http://www.ecma-international.org/ecma-262/6.0/#sec-identifiers
   IdentifierReference: [
-    o 'IDENTIFIER', -> {type:"IdentifierReference", IDENTIFIER:$1}
+    o 'IDENTIFIER'
+  ]
+  BindingIdentifier: [
+    o 'IDENTIFIER'
   ]
 
-  IdentifierName: [
-    o 'IDENTIFIER', -> {type:"IdentifierName", IDENTIFIER:$1}
+  # BindingPattern http://www.ecma-international.org/ecma-262/6.0/#sec-destructuring-binding-patterns
+  BindingPattern: [
+    o 'ObjectBindingPattern'
+    o 'ArrayBindingPattern'
+  ]
+  ObjectBindingPattern: [
+    o 'Object'
+  ]
+  ArrayBindingPattern: [
+    o 'Array'
   ]
 
+  # Literals http://www.ecma-international.org/ecma-262/6.0/#sec-primary-expression-literals
   StringLiteral: [
     o 'String'
   ]
-
   NumericLiteral: [
     o 'NUMBER'
   ]
-  ## END HACK
 
-  TypeParameters: [
-    o '< TypeParameterList >',    -> $2
+  # TypeAnnotation https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#39-specifying-members
+  TypeAnnotation: [
+    o '::: Type', -> {type:"TypeAnnotation", Type:$2}
   ]
 
-  TypeParameterList: [
-    o '',                                      -> []
-    o 'TypeParameter',                         -> [$1]
-    o 'TypeParameterList , TypeParameter', -> $1.concat $3
-  ]
-
-  TypeParameter: [
-    o 'BindingIdentifier'
-    #o 'BindingIdentifier Constraint'
-  ]
-
-  ###
-  Constraint: [
-    o 'EXTENDS Type', -> ["Constraint", $2]
-  ]
-  ###
-
-  TypeArguments: [
-    o '< TypeArgumentList >', -> $2
-  ]
-
-  TypeArgumentList: [
-    o 'TypeArgument',                    -> [$1]
-    o 'TypeArgumentList , TypeArgument', -> $1.concat $3
-  ]
-
-  TypeArgument: [
-    o 'Type'
-  ]
-
+  # Type https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#38-specifying-types
   Type: [
     o 'UnionOrIntersectionOrPrimaryType'
-    o 'FunctionType'
-    o 'ConstructorType'
+    #o 'FunctionType'
+    #o 'ConstructorType'
   ]
-
   UnionOrIntersectionOrPrimaryType: [
     o 'UnionType'
     o 'IntersectionOrPrimaryType'
   ]
-
   IntersectionOrPrimaryType: [
     o 'IntersectionType'
     o 'PrimaryType'
   ]
-
   PrimaryType: [
     o 'ParenthesizedType'
-    #o 'PredefinedType'
+    o 'PredefinedType'
     o 'TypeReference'
-    o 'ObjectType'
+    #o 'ObjectType'
     o 'ArrayType'
     o 'TupleType'
-    o 'TypeQuery'
+    #o 'TypeQuery'
   ]
-
   ParenthesizedType: [
     o '( Type )', -> $2
   ]
-  ###
-  PredefinedType: [
-    o 'any'
-    o 'number'
-    o 'boolean'
-    o 'string'
-    o 'symbol'
-    o 'void'
-  ]
-  ###
+  # PredefinedType https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#381-predefined-types
+  PredefinedType: []
+  # TypeReference https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#382-type-references
   TypeReference: [
     o 'TypeName',               -> {type: "TypeReference", TypeName:$1}
-    o 'TypeName TypeArguments', -> {type: "TypeReference", TypeName:$1, TypeArguments:$2}
+    #o 'TypeName TypeArguments', -> {type: "TypeReference", TypeName:$1, TypeArguments:$2}
   ]
-
   TypeName: [
     o 'IdentifierReference',            -> [$1]
     o 'TypeName . IdentifierReference', -> $1.concat $3 # HACK
-    # conflict
-    # o 'NamespaceName . IdentifierReference', -> ["TypeName", $1.concat $3]
+  ]
+  ArrayType: [
+    o 'PrimaryType INDEX_START INDEX_END', -> {type:"ArrayType", PrimaryType:$1}
+  ]
+  TupleType: [
+    o '[ TupleElementTypes ]', -> {type:"TupleType", TupleElementTypes:$2}
+  ]
+  TupleElementTypes: [
+    o 'Type',                     -> [$1]
+    o 'TupleElementTypes , Type', -> $1.concat [$3]
+  ]
+  UnionType: [
+    o 'UnionOrIntersectionOrPrimaryType | IntersectionOrPrimaryType', -> {type:"UnionType", UnionOrIntersectionOrPrimaryType:$1, IntersectionOrPrimaryType:$3}
+  ]
+  IntersectionType: [
+    o 'IntersectionOrPrimaryType & PrimaryType', -> {type:"IntersectionType", IntersectionOrPrimaryType:$1, PrimaryType:$3}
   ]
   ###
-  Conflict in grammar: multiple actions possible when lookahead token is = in state 233
-  - reduce by rule: NamespaceName -> IdentifierReference
-  - reduce by rule: TypeName -> IdentifierReference
-  NamespaceName: [
-    o 'IdentifierReference',                 -> [$1]
-    o 'NamespaceName . IdentifierReference', -> $1.concat $3
+  TypeQuery: [
+    o 'TYPEOF TypeQueryExpression', -> {type:"TypeQuery", TypeQueryExpression:$2}
   ]
-  ###
+  TypeQueryExpression: [
+    o 'Identifier',                  -> [$1]
+    o 'TypeQueryExpression . Identifier', -> $1.concat $3
+  ]
 
   ObjectType: [
     o '{ }',          -> {type:"ObjectType", TypeBody:null}
     o '{ TypeBody }', -> {type:"ObjectType", TypeBody:$2}
   ]
-
   TypeBody: [
     o 'TypeMemberList'
     o 'TypeMemberList ,', -> $1
-    o 'TypeMemberList ;', -> $1
   ]
-
   TypeMemberList: [
     o 'TypeMember',                  -> [$1]
-    o 'TypeMemberList ; TypeMember', -> $1.concat $3
     o 'TypeMemberList , TypeMember', -> $1.concat $3
   ]
-
   TypeMember: [
     o 'PropertySignature'
     o 'CallSignature'
@@ -757,56 +729,6 @@ grammar =
     o 'IndexSignature'
     o 'MethodSignature'
   ]
-
-  ArrayType: [
-    o 'PrimaryType INDEX_START INDEX_END', -> {type:"ArrayType", PrimaryType:$1}
-    #o 'PrimaryType [ ]', -> {type:"ArrayType", PrimaryType:$1} # base grammer
-  ]
-
-  TupleType: [
-    o '[ TupleElementTypes ]', -> {type:"TupleType", TupleElementTypes:$2}
-  ]
-
-  TupleElementTypes: [
-    o 'TupleElementType',                     -> [$1]
-    o 'TupleElementTypes , TupleElementType', -> $1.concat [$3]
-  ]
-
-  TupleElementType: [
-    o 'Type'
-  ]
-
-  UnionType: [
-    o 'UnionOrIntersectionOrPrimaryType | IntersectionOrPrimaryType', -> {type:"UnionType", UnionOrIntersectionOrPrimaryType:$1, IntersectionOrPrimaryType:$3}
-  ]
-
-  IntersectionType: [
-    o 'IntersectionOrPrimaryType & PrimaryType', -> {type:"IntersectionType", IntersectionOrPrimaryType:$1, PrimaryType:$3}
-  ]
-
-  FunctionType: [
-    o '( ) => Type',                              -> {type:"FunctionType", Type:$4}
-    #o '( ParameterList ) => Type',                -> {type:"FunctionType", ParameterList:$2, Type:$5}
-    o 'TypeParameters ( ) => Type',               -> {type:"FunctionType", TypeParameters:$1, Type:$5}
-    #o 'TypeParameters ( ParameterList ) => Type', -> {type:"FunctionType", TypeParameters:$1, ParameterList:$3, Type:$6}
-  ]
-
-  ConstructorType: [
-    o 'NEW ( ) => Type',                              -> {type:"ConstructorType", Type:$5}
-    #o 'NEW ( ParameterList ) => Type',                -> {type:"ConstructorType", Type:$6}
-    o 'NEW TypeParameters ( ) => Type',               -> {type:"ConstructorType", TypeParameters:$2, Type:$6}
-    #o 'NEW TypeParameters ( ParameterList ) => Type', -> ["ConstructorType", $1, $3, $6]
-  ]
-
-  TypeQuery: [
-    o 'TYPEOF TypeQueryExpression', -> {type:"TypeQuery", TypeQueryExpression:$2}
-  ]
-
-  TypeQueryExpression: [
-    o 'IdentifierReference',                  -> [$1]
-    o 'TypeQueryExpression . IdentifierName', -> $1.concat $3
-  ]
-
   PropertySignature: [
     o 'PropertyName',                  -> {type:"PropertySignature", PropertyName:$1}
     o 'PropertyName ?',                -> {type:"PropertySignature", PropertyName:$1, optional:true}
@@ -814,17 +736,11 @@ grammar =
     o 'PropertyName ? TypeAnnotation', -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:$3, optional:true}
     o 'PropertyName ?::: Type',        -> {type:"PropertySignature", PropertyName:$1, TypeAnnotation:{type:"TypeAnnotation", Type:$3}, optional:true}
   ]
-
   PropertyName: [
-    o 'IdentifierName'
+    o 'Identifier'
     o 'StringLiteral'
     o 'NumericLiteral'
   ]
-
-  TypeAnnotation: [
-    o '::: Type', -> {type:"TypeAnnotation", Type:$2}
-  ]
-
   CallSignature: [
     o '( )',                               -> {type:"CallSignature"}
     o 'TypeParameters ( )',                -> {type:"CallSignature", TypeParameters:$1}
@@ -835,9 +751,53 @@ grammar =
     o 'TypeParameters ( ) TypeAnnotation', -> {type:"CallSignature", TypeParameters:$1, TypeAnnotation:$4}
     #o 'TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"CallSignature", TypeParameters:$1, ParameterList:$3, TypeAnnotation:$4}
   ]
-  ###
+  ConstructSignature: [
+    o 'NEW ( )',                               -> {type:"ConstructSignature"}
+    o 'NEW TypeParameters ( )',                -> {type:"ConstructSignature", TypeParameters:$2}
+    #o 'NEW ( ParameterList )',                 -> {type:"ConstructSignature", ParameterList:$3}
+    o 'NEW ( ) TypeAnnotation',                -> {type:"ConstructSignature", TypeAnnotation:$4}
+    #o 'NEW TypeParameters ( ParameterList )',  -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4}
+    #o 'NEW ( ParameterList ) TypeAnnotation',  -> {type:"ConstructSignature", ParameterList:$3, TypeAnnotation:$5}
+    o 'NEW TypeParameters ( ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, TypeAnnotation:$5}
+    #o 'NEW TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4, TypeAnnotation:$6}
+  ]
+  IndexSignature: [
+    o '[ BindingIdentifier : string ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
+    o '[ BindingIdentifier : number ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
+  ]
+  MethodSignature: [
+    o 'PropertyName CallSignature',   -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3}
+    o 'PropertyName ? CallSignature', -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3, optional:true}
+  ]
+
+  FunctionType: [
+    o '( ) => Type',                              -> {type:"FunctionType", Type:$4}
+    #o '( ParameterList ) => Type',                -> {type:"FunctionType", ParameterList:$2, Type:$5}
+    o 'TypeParameters ( ) => Type',               -> {type:"FunctionType", TypeParameters:$1, Type:$5}
+    #o 'TypeParameters ( ParameterList ) => Type', -> {type:"FunctionType", TypeParameters:$1, ParameterList:$3, Type:$6}
+  ]
+  ConstructorType: [
+    o 'NEW ( ) => Type',                              -> {type:"ConstructorType", Type:$5}
+    #o 'NEW ( ParameterList ) => Type',                -> {type:"ConstructorType", Type:$6}
+    o 'NEW TypeParameters ( ) => Type',               -> {type:"ConstructorType", TypeParameters:$2, Type:$6}
+    #o 'NEW TypeParameters ( ParameterList ) => Type', -> ["ConstructorType", $1, $3, $6]
+  ]
+  # FunctionType = < TypeParameterList >( ParameterList ) => Type
+  TypeParameters: [
+    o '< TypeParameterList >',    -> $2
+  ]
+  TypeParameterList: [
+    o 'TypeParameter',                         -> [$1]
+    o 'TypeParameterList , TypeParameter', -> $1.concat $3
+  ]
+  TypeParameter: [
+    o 'Identifier',            -> {type:"TypeParameter"}
+    # Identifier Constraint
+    o 'Identifier EXTENDS Type', -> {type:"TypeParameter", Constraint:$3}
+  ]
+
   ParameterList: [
-    o 'RequiredParameterList', -> [$1]
+    o 'RequiredParameterList', -> $1
     #o 'OptionalParameterList', -> [$1]
     #o 'RestParameter',         -> [$1]
     #o 'RequiredParameterList , OptionalParameterList', -> $1.concat $3
@@ -847,12 +807,13 @@ grammar =
   ]
 
   RequiredParameterList: [
-    o 'RequiredParameter',                         -> [$1]
-    o 'RequiredParameterList , RequiredParameter', -> $1.concat $3
+    o 'IDENTIFIER',                         -> [$1]
+    o 'RequiredParameterList , IDENTIFIER', -> $1.concat $3
   ]
 
   RequiredParameter: [
-    o 'BindingIdentifierOrPattern',                       -> {type:"RequiredParameter", BindingIdentifierOrPattern:$1}
+    #o 'IDENTIFIER',                       -> {type:"RequiredParameter", BindingIdentifierOrPattern:$1}
+    #o 'BindingPattern',                       -> {type:"RequiredParameter", BindingIdentifierOrPattern:$1}
     #o 'AccessibilityModifier BindingIdentifierOrPattern', -> ["RequiredParameter", $1, $2, null]
     #o 'BindingIdentifierOrPattern TypeAnnotation',        -> {type:"RequiredParameter", BindingIdentifierOrPattern:$1, TypeAnnotation:$2}
     #o 'AccessibilityModifier BindingIdentifierOrPattern TypeAnnotation', -> ["RequiredParameter", $1, $2, $3]
@@ -864,12 +825,7 @@ grammar =
     o "private"
     o "protected"
   ]
-  ###
-  BindingIdentifierOrPattern: [
-    o 'BindingIdentifier'
-    o 'BindingPattern'
-  ]
-  ###
+
   OptionalParameterList: [
     o 'OptionalParameter', -> [$1]
     o 'OptionalParameterList , OptionalParameter', -> $1.concat $3
@@ -890,31 +846,24 @@ grammar =
   RestParameter: [
     o '... BindingIdentifier TypeAnnotation', -> {type:"RestParameter", BindingIdentifier:$1, TypeAnnotation:$3}
   ]
-  ###
-  ConstructSignature: [
-    o 'NEW ( )',                               -> {type:"ConstructSignature"}
-    o 'NEW TypeParameters ( )',                -> {type:"ConstructSignature", TypeParameters:$2}
-    #o 'NEW ( ParameterList )',                 -> {type:"ConstructSignature", ParameterList:$3}
-    o 'NEW ( ) TypeAnnotation',                -> {type:"ConstructSignature", TypeAnnotation:$4}
-    #o 'NEW TypeParameters ( ParameterList )',  -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4}
-    #o 'NEW ( ParameterList ) TypeAnnotation',  -> {type:"ConstructSignature", ParameterList:$3, TypeAnnotation:$5}
-    o 'NEW TypeParameters ( ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, TypeAnnotation:$5}
-    #o 'NEW TypeParameters ( ParameterList ) TypeAnnotation', -> {type:"ConstructSignature", TypeParameters:$2, ParameterList:$4, TypeAnnotation:$6}
-  ]
 
-  IndexSignature: [
-    o '[ BindingIdentifier : string ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
-    o '[ BindingIdentifier : number ] TypeAnnotation', -> {type:"IndexSignature", BindingIdentifier:$2, IndexType:$3, TypeAnnotation:$6}
-  ]
 
-  MethodSignature: [
-    o 'PropertyName CallSignature',   -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3}
-    o 'PropertyName ? CallSignature', -> {type:"MethodSignature", PropertyName:$1, CallSignature:$3, optional:true}
-  ]
-  ###
   TypeAliasDeclaration: [
     o 'type BindingIdentifier = Type',                -> ["TypeAliasDeclaration", $2, null, $4]
     o 'type BindingIdentifier TypeParameters = Type', -> ["TypeAliasDeclaration", $2, $3, $5]
+  ]
+
+  # TypeReference = TypeName<TypeArgumentList>
+  # TypeArguments https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md#362-type-argument-lists
+  TypeArguments: [
+    o '< TypeArgumentList >', -> $2
+  ]
+  TypeArgumentList: [
+    o 'TypeArgument',                    -> [$1]
+    o 'TypeArgumentList , TypeArgument', -> $1.concat $3
+  ]
+  TypeArgument: [
+    o 'Type'
   ]
   ###
 
@@ -932,6 +881,7 @@ grammar =
 operators = [
   ['left',      '.', '?.', '::', '?::']
   ['left',      'CALL_START', 'CALL_END']
+  #+['left',      'CALL_START', 'CALL_END', '(', ')']
   ['nonassoc',  '++', '--']
   ['left',      '?']
   ['right',     'UNARY']
@@ -945,7 +895,7 @@ operators = [
   ['left',      'LOGIC', '|', '&']
   ['nonassoc',  'INDENT', 'OUTDENT']
   ['right',     'YIELD']
-  ['right',     ':::']
+  #+['right',     ':::', ',']
   ['right',     '=', ':', 'COMPOUND_ASSIGN', 'RETURN', 'THROW', 'EXTENDS']
   ['right',     'FORIN', 'FOROF', 'BY', 'WHEN']
   ['right',     'IF', 'ELSE', 'FOR', 'WHILE', 'UNTIL', 'LOOP', 'SUPER', 'CLASS']

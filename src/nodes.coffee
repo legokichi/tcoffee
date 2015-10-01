@@ -1177,7 +1177,7 @@ exports.Class = class Class extends Base
 # The **Assign** is used to assign a local variable to value, or to set the
 # property of an object -- including within object literals.
 exports.Assign = class Assign extends Base
-  constructor: (@variable, @value, @context, options = {}) ->
+  constructor: (@variable, @value, @context, options = {}, @type) ->
     {@param, @subpattern, @operatorToken} = options
     forbidden = (name = @variable.unwrapAll().value) in STRICT_PROSCRIBED
     if forbidden and @context isnt 'object'
