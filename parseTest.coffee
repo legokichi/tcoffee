@@ -152,10 +152,9 @@ test 'hige ::: {[key:::string]:::Hoge} = {}', (code, tokens, nodes)->
 
 test 'func ::: ~> void = -> undefined', (code, tokens, nodes)->
   testTokens code, tokens, [ 'IDENTIFIER', ':::', '~>', 'IDENTIFIER', "=", "->", 'INDENT', 'UNDEFINED', 'OUTDENT', 'TERMINATOR' ]
-  ###
   testNode code, nodes.expressions[0].type.Type,
     type: 'FunctionType'
-    Type: { type: 'TypeReference', TypeName: [ 'void' ] }###
+    Type: { type: 'TypeReference', TypeName: [ 'void' ] }
 
 test 'func ::: () ~> void = () -> undefined', (code, tokens, nodes)->
   testTokens code, tokens, [ 'IDENTIFIER', ':::', "(", ")", '~>', 'IDENTIFIER', "=", 'PARAM_START', "PARAM_END", "->", 'INDENT', 'UNDEFINED', 'OUTDENT', 'TERMINATOR' ]
