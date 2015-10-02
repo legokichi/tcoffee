@@ -5,11 +5,11 @@ test = (code, cb)->
     tokens = CoffeeScript.tokens(code)
     nodes = CoffeeScript.nodes(tokens)
     tokens = tokens.map (token)-> token[0]
-  catch
+  catch err
     console.log "### parse error: #{code}"
     console.log tokens
     console.log nodes
-    throw ""
+    throw err
   cb(code, tokens, nodes)
 
 testTokens = (code, tokens, expect)->
@@ -31,6 +31,12 @@ testNode = (code, node, expect)->
     console.dir expect
 
 
+
+test "n = 3", (code, tokens, nodes)->
+  testTokens code, tokens, ["IDENTIFIER", "=", "NUMBER", "TERMINATOR"]
+  testNode code, nodes.expressions[0].type,
+    type: 'TypeAnnotation'
+    Type: { type: 'TypeReference', TypeName: [ 'any' ] }
 
 test "n ::: number = 3", (code, tokens, nodes)->
   testTokens code, tokens, ["IDENTIFIER", ":::", "IDENTIFIER", "=", "NUMBER", "TERMINATOR"]
@@ -105,22 +111,22 @@ test "tuple ::: [number, string] = [3, \"three\"]", (code, tokens, nodes)->
       {type: 'TypeReference', TypeName: ["string"]}
     ]
 
-test "typequery ::: typeof window.name = \"a\";", (code, tokens, nodes)->
+test "typequery ::: typeof hoge.huga = \"a\";", (code, tokens, nodes)->
   testTokens code, tokens, ["IDENTIFIER", ":::", "TYPEOF", "IDENTIFIER", ".","IDENTIFIER",  "=", "STRING", "TERMINATOR"]
   testNode code, nodes.expressions[0].type,
     type: 'TypeAnnotation'
     Type:
       type: 'TypeQuery'
-      TypeQueryExpression: ["window", "name"]
+      TypeQueryExpression: ["hoge", "huga"]
 
 test 'obj ::: {a, b?, c:::number, d? :::number} = {a:0, b:null, c:0, d:null}', (code, tokens, nodes)->
   testTokens code, tokens, [ 'IDENTIFIER', ':::', '{', 'IDENTIFIER', ',', 'IDENTIFIER', '?', ',', 'IDENTIFIER', ':::', 'IDENTIFIER', ',', 'IDENTIFIER', '?', ':::', 'IDENTIFIER', '}', '=', '{', 'IDENTIFIER', ':', 'NUMBER', ',', 'IDENTIFIER', ':', 'NULL', ',', 'IDENTIFIER', ':', 'NUMBER', ',', 'IDENTIFIER', ':', 'NULL', '}', 'TERMINATOR' ]
   testNode code, nodes.expressions[0].type.Type,
     type: 'ObjectType'
     TypeBody: [
-      { type: 'PropertySignature', PropertyName: 'a' }
-      { type: 'PropertySignature', PropertyName: 'b', optional: true }
-      { type: 'PropertySignature', PropertyName: 'c', TypeAnnotation: { type: 'TypeAnnotation', Type: {type: 'TypeReference', TypeName: ["number"]} } }
+      { type: 'PropertySignature', PropertyName: 'a', TypeAnnotation: { type: "TypeAnnotation", Type: { type: 'TypeReference', TypeName: [ 'any' ]}} }
+      { type: 'PropertySignature', PropertyName: 'b', TypeAnnotation: { type: "TypeAnnotation", Type: { type: 'TypeReference', TypeName: [ 'any' ]}}, optional: true }
+      { type: 'PropertySignature', PropertyName: 'c', TypeAnnotation: { type: 'TypeAnnotation', Type: {type: 'TypeReference', TypeName: ["number"]}} }
       { type: 'PropertySignature', PropertyName: 'd', TypeAnnotation: { type: 'TypeAnnotation', Type: {type: 'TypeReference', TypeName: ["number"]}}, optional: true }
     ]
 
@@ -132,3 +138,27 @@ test 'array ::: Array<number> = [3]', (code, tokens, nodes)->
     TypeArguments: [
       { type: 'TypeReference', TypeName: ["number"]}
     ]
+
+test 'hige ::: {[key:::string]:::Hoge} = {}', (code, tokens, nodes)->
+  testTokens code, tokens, [ 'IDENTIFIER', ':::', "{", "[", 'IDENTIFIER', ":::", 'IDENTIFIER', "]", ':::', "IDENTIFIER", "}", '=', '{', '}', 'TERMINATOR' ]
+  testNode code, nodes.expressions[0].type.Type,
+    type: 'ObjectType',
+    TypeBody: [{
+      type: 'IndexSignature',
+      BindingIdentifier: 'key',
+      IndexType: { type: "TypeAnnotation", Type: { type: 'TypeReference', TypeName: [ 'string' ]}}
+      TypeAnnotation: { type: "TypeAnnotation", Type: { type: 'TypeReference', TypeName: [ 'Hoge' ]}}
+    }]
+
+test 'func ::: ~> void = -> undefined', (code, tokens, nodes)->
+  testTokens code, tokens, [ 'IDENTIFIER', ':::', '~>', 'IDENTIFIER', "=", "->", 'INDENT', 'UNDEFINED', 'OUTDENT', 'TERMINATOR' ]
+  ###
+  testNode code, nodes.expressions[0].type.Type,
+    type: 'FunctionType'
+    Type: { type: 'TypeReference', TypeName: [ 'void' ] }###
+
+test 'func ::: () ~> void = () -> undefined', (code, tokens, nodes)->
+  testTokens code, tokens, [ 'IDENTIFIER', ':::', "(", ")", '~>', 'IDENTIFIER', "=", 'PARAM_START', "PARAM_END", "->", 'INDENT', 'UNDEFINED', 'OUTDENT', 'TERMINATOR' ]
+  testNode code, nodes.expressions[0].type.Type,
+    type: 'FunctionType'
+    Type: { type: 'TypeReference', TypeName: [ 'void' ] }

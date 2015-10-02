@@ -813,7 +813,7 @@ NUMBER     = ///
 
 OPERATOR   = /// ^ (
   ?: [-=]>             # function
-   | \?:::             # property type annotation
+   | \~\>              # function type annotation
    | :::               # type annotation
    | [-+*/%<>&|^!?=]=  # compound assign / compare
    | >>>=?             # zero-fill right shift
